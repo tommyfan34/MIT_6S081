@@ -1,0 +1,26 @@
+Script started on 2021-01-18 09:41:36+08:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="132" LINES="36"]
+[1m[7m%[27m[1m[0m                                                                                                                                    ]2;tommy@ThinkpadX1:~/xv6-labs-2020]1;~/xv6-labs-2020[0m[27m[24m[J[39m[0m[49m[40m[39m 🤖 [44m[30m[30m ~/xv6-labs-2020 [43m[34m[30m  util [49m[33m[39m [K[?1h=[?2004h[4mm[24m[90man script[39m[9D[24m[1m[31mm[1m[31ma[0m[39m[1m[31mm[1m[31ma[1m[31mk[0m[39m[90me[90m [90mq[90me[90mm[90mu[39m[39m [0m[32mm[0m[32ma[0m[32mk[32me[39m[39m [39mq[39me[39mm[39mu[?1l>[?2004l
+]2;make qemu]1;makeqemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+init: starting sh
+$ primes
+prime 2
+prime 3
+prime 5
+prime 7
+prime 11
+prime 13
+prime 17
+prime 19
+prime 23
+prime 29
+prime 31
+$ QEMU: Terminated
+[1m[7m%[27m[1m[0m                                                                                                                                    ]2;tommy@ThinkpadX1:~/xv6-labs-2020]1;~/xv6-labs-2020[0m[27m[24m[J[39m[0m[49m[40m[39m 🤖 [44m[30m[30m ~/xv6-labs-2020 [43m[34m[30m  util [49m[33m[39m [K[?1h=[?2004h[?1l>[?2004l
+[1m[7m%[27m[1m[0m                                                                                                                                    ]2;tommy@ThinkpadX1:~/xv6-labs-2020]1;~/xv6-labs-2020[0m[27m[24m[J[39m[0m[49m[40m[39m 🤖 [44m[30m[30m ~/xv6-labs-2020 [43m[34m[30m  util [49m[33m[39m [K[?1h=[?2004h[1m[31me[0m[39m[0m[32me[32mx[39m[1m[31me[1m[31mx[1m[31mi[0m[39m[0m[32me[0m[32mx[0m[32mi[32mt[39m[?1l>[?2004l
+]2;exit]1;exit
+Script done on 2021-01-18 09:41:59+08:00 [COMMAND_EXIT_CODE="0"]

@@ -152,6 +152,7 @@ UPROGS=\
 	$U/_pingpong\
 	$U/_sleep\
 	$U/_primes\
+	$U/_find\
 
 ifeq ($(LAB),syscall)
 UPROGS += \
@@ -305,3 +306,5 @@ myapi.key:
 
 
 .PHONY: handin tarball tarball-pref clean grade handin-check
+gdb:
+	riscv64-unknown-elf-gdb kernel/kernel
