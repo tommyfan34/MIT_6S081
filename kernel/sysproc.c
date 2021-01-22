@@ -95,3 +95,15 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// trace the sys call from the user space
+uint64
+sys_trace(void)
+{
+  int n;
+
+  if(argint(0, &n) < 0)
+    return -1;
+  myproc()->syscallnum = n;
+  return 0;  
+}

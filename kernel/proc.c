@@ -294,6 +294,9 @@ fork(void)
   pid = np->pid;
 
   np->state = RUNNABLE;
+  
+  // copy the trace mask from the parent to the child process
+  np->syscallnum = p->syscallnum;
 
   release(&np->lock);
 
