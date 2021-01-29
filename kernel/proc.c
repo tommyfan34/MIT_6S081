@@ -536,6 +536,8 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         c->proc = 0;
 
+      	w_satp(MAKE_SATP(kernel_pagetable));
+      	sfence_vma();
         found = 1;
       }
       release(&p->lock);
@@ -543,8 +545,6 @@ scheduler(void)
 #if !defined (LAB_FS)
     if(found == 0) {
       intr_on();
-      w_satp(MAKE_SATP(kernel_pagetable));
-      sfence_vma();
       asm volatile("wfi");
     }
 #else
