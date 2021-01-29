@@ -1,0 +1,6 @@
+1. a0-a7 registers. 13 is stored in a2.
+2. compiler optimized to store the return value of f as instant number
+3. 0x628
+4. 0x38
+5. HE110 World
+6. a random number 
