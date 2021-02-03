@@ -231,11 +231,11 @@ int cow_alloc(pagetable_t pagetable, uint64 va) {
   pte_t *pte;
   uint flags;
 
-  if (va >= MAXVA) return -1;
+  if (va >= MAXVA) return -1; 
   va = PGROUNDDOWN(va);
   pte = walk(pagetable, va, 0);
   if (pte == 0) return -1;
-  // if ((*pte & PTE_V) == 0) return -1;
+  if ((*pte & PTE_V) == 0) return -1;
   pa = PTE2PA(*pte);
   if (pa == 0) return -1;
   flags = PTE_FLAGS(*pte);

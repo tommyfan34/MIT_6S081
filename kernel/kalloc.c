@@ -34,11 +34,9 @@ void
 refcinit()
 {
   initlock(&refc.lock, "refc");
-  acquire(&kmem.lock);
   for (int i = 0; i < PGROUNDUP(PHYSTOP) / PGSIZE; i++) {
     refc.count[i] = 0;
   }
-  release(&kmem.lock);
 }
 
 void
