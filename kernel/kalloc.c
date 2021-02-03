@@ -67,6 +67,11 @@ kinit()
   refcinit();
   initlock(&kmem.lock, "kmem");
   freerange(end, (void*)PHYSTOP);
+  char *p;
+  p = (char*)PGROUNDUP((uint64)end);
+  for(; p + PGSIZE <= (char*)PHYSTOP; p += PGSIZE) {
+    refcinc((void*)p);
+  }
 }
 
 void
@@ -75,7 +80,6 @@ freerange(void *pa_start, void *pa_end)
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE) {
-    refcinc((void*)p);
     kfree(p);
 }
     
