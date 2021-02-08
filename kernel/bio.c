@@ -42,6 +42,19 @@ int hash (int n) {
   return result;
 }
 
+int can_lock(int id, int j) {
+  int num = NBUCKET/2;
+  if (id <= num) {
+    if (j > id && j <= (id+num))
+      return 0;
+  } else {
+    if ((id < j && j < NBUCKET) || (j <= (id+num)%NBUCKET)) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 void
 binit(void)
 {
@@ -54,16 +67,6 @@ binit(void)
     initsleeplock(&b->lock, "buffer");
   }
 
-  // // Create linked list of buffers
-  // bcache.head.prev = &bcache.head;
-  // bcache.head.next = &bcache.head;
-  // for(b = bcache.buf; b < bcache.buf+NBUF; b++){
-  //   b->next = bcache.head.next;
-  //   b->prev = &bcache.head;
-  //   initsleeplock(&b->lock, "buffer");
-  //   bcache.head.next->prev = b;
-  //   bcache.head.next = b;
-  // }
 }
 
 // Look through buffer cache for block on device dev.
@@ -81,43 +84,41 @@ bget(uint dev, uint blockno)
   while (b) {
     if (b->dev == dev && b->blockno == blockno) {
       b->refcnt++;
-      release(&bcache.lock[id]);
+      if (holding(&bcache.lock[id]))
+        release(&bcache.lock[id]);
       acquiresleep(&b->lock);
       return b;
     }
     b = b->next;
   }
 
-  // // Is the block already cached?
-  // for(b = bcache.head.next; b != &bcache.head; b = b->next){
-  //   if(b->dev == dev && b->blockno == blockno){
-  //     b->refcnt++;
-  //     release(&bcache.lock);
-  //     acquiresleep(&b->lock);
-  //     return b;
-  //   }
-  // }
-
   int index = -1;
   uint smallest_tick = __UINT32_MAX__;
   // find the LRU unused buffer
   for (int j = 0; j < NBUCKET; ++j) {
-    if (j != id) 
+    if (j!=id && can_lock(id, j)) {
+      // if j == id, then lock is already acquired
+      // can_lock is to maintain an invariant of lock acquisition order
+      // to avoid dead lock
       acquire(&bcache.lock[j]);
+    } else if (!can_lock(id, j)) {
+      continue;
+    }
     b = bcache.head[j].next;
     while (b) {
       if (b->refcnt == 0) {
         if (b->time < smallest_tick) {
-        smallest_tick = b->time;
-        index = j;
+          smallest_tick = b->time;
+          if (index != -1 && index != j && holding(&bcache.lock[index])) release(&bcache.lock[index]);
+          index = j;
         }   
       }
       b = b->next;
     }
-    if (j != id) release(&bcache.lock[j]);
+    if (j!=id && j!=index && holding(&bcache.lock[j])) release(&bcache.lock[j]);
   }
   if (index == -1) panic("bget: no buffers");
-  if (index != id) acquire(&bcache.lock[index]);
+  // if (index != id) acquire(&bcache.lock[index]);
   b = &bcache.head[index];
   
   while (b) {
@@ -128,7 +129,7 @@ bget(uint dev, uint blockno)
     }
     b = b->next;
   }
-  if (index != id) release(&bcache.lock[index]);
+  if (index != id && holding(&bcache.lock[index])) release(&bcache.lock[index]);
   b = &bcache.head[id];
   while (b->next) {
     b = b->next;
@@ -139,24 +140,10 @@ bget(uint dev, uint blockno)
   selected->blockno = blockno;
   selected->valid = 0;
   selected->refcnt = 1;
-  release(&bcache.lock[id]);
+  if (holding(&bcache.lock[id]))
+    release(&bcache.lock[id]);
   acquiresleep(&selected->lock);
   return selected;
-
-  // // Not cached.
-  // // Recycle the least recently used (LRU) unused buffer.
-  // for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
-  //   if(b->refcnt == 0) {
-  //     b->dev = dev;
-  //     b->blockno = blockno;
-  //     b->valid = 0;
-  //     b->refcnt = 1;
-  //     release(&bcache.lock);
-  //     acquiresleep(&b->lock);
-  //     return b;
-  //   }
-  // }
-  // panic("bget: no buffers");
 }
 
 // Return a locked buf with the contents of the indicated block.
@@ -197,13 +184,6 @@ brelse(struct buf *b)
   b->refcnt--;
   if (b->refcnt == 0) {
     b->time = ticks;
-    // // no one is waiting for it.
-    // b->next->prev = b->prev;
-    // b->prev->next = b->next;
-    // b->next = bcache.head.next;
-    // b->prev = &bcache.head;
-    // bcache.head.next->prev = b;
-    // bcache.head.next = b;
   }
   
   release(&bcache.lock[id]);
