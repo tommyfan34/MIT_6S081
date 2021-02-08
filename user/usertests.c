@@ -2736,7 +2736,7 @@ main(int argc, char *argv[])
     void (*f)(char *);
     char *s;
   } tests[] = {
-    // {manywrites, "manywrites"},
+    {manywrites, "manywrites"},
     {execout, "execout"},
     {copyin, "copyin"},
     {copyout, "copyout"},
@@ -2779,7 +2779,7 @@ main(int argc, char *argv[])
     {stacktest, "stacktest"},
     {opentest, "opentest"},
     {writetest, "writetest"},
-    // {writebig, "writebig"},
+    {writebig, "writebig"},
     {createtest, "createtest"},
     {openiputtest, "openiput"},
     {exitiputtest, "exitiput"},
