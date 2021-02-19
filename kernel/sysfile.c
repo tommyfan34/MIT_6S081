@@ -485,14 +485,122 @@ sys_pipe(void)
   return 0;
 }
 
+int
+_filewrite(struct file *f, uint64 addr, int n, uint off) {
+  int r, ret = 0;
+
+  if(f->writable == 0)
+    return -1;
+
+  if(f->type == FD_PIPE){
+    ret = pipewrite(f->pipe, addr, n);
+  } else if(f->type == FD_DEVICE){
+    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+      return -1;
+    ret = devsw[f->major].write(1, addr, n);
+  } else if(f->type == FD_INODE){
+    // write a few blocks at a time to avoid exceeding
+    // the maximum log transaction size, including
+    // i-node, indirect block, allocation blocks,
+    // and 2 blocks of slop for non-aligned writes.
+    // this really belongs lower down, since writei()
+    // might be writing a device like the console.
+    int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+    int i = 0;
+    while(i < n){
+      int n1 = n - i;
+      if(n1 > max)
+        n1 = max;
+
+      begin_op();
+      ilock(f->ip);
+      if ((r = writei(f->ip, 1, addr + i, off, n1)) > 0)
+        off += r;
+      iunlock(f->ip);
+      end_op();
+
+      if(r != n1){
+        // error from writei
+        break;
+      }
+      i += r;
+    }
+    // ret = (i == n ? n : -1);
+  } else {
+    panic("filewrite");
+  }
+
+  return ret;
+}
+
 uint64
 sys_mmap(void)
 {
+  int length, prot, flags, fd;
+  struct file *f;
+  if (argint(1, &length)<0 || argint(2, &prot)<0 || argint(3, &flags)<0 || argfd(4, &fd, &f)<0) {
+    return -1;
+  }
+  if (!f->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)) return -1;
+  struct proc *p = myproc();
+  struct vma *pvma = p->procvma;
+  for (int i = 0; i < MAXVMA; i++) {
+    if(pvma[i].valid == 0) {
+      pvma[i].addr = p->sz;
+      pvma[i].f = filedup(f);  // increment the refcount for f
+      pvma[i].flags = flags;
+      pvma[i].len = PGROUNDUP(length);
+      pvma[i].prot = prot;
+      pvma[i].valid = 1;
+      pvma[i].off = 0;
+      pvma[i].valid_len = pvma[i].len;
+      p->sz += pvma[i].len;
+      return pvma[i].addr;
+    }
+  }
   return -1;
 }
 
 uint64
 sys_munmap(void)
 {
+  uint64 addr;
+  int length;
+  if (argaddr(0, &addr) < 0 || argint(1, &length) < 0) {
+    return -1;
+  }
+  struct proc *p = myproc();
+  struct vma *pvma = p->procvma;
+  int close = 0;
+  // find the corresponding vma
+  for (int i = 0; i < MAXVA; i++) {
+    if (pvma[i].valid && addr >= pvma[i].addr && addr < pvma[i].addr + pvma[i].len) {
+      addr = PGROUNDDOWN(addr);
+      if (addr == pvma[i].addr + pvma[i].off) {
+        // starting at begin of the valid address of vma
+        if (length >= pvma[i].valid_len) {
+          // whole vma is unmmaped
+          pvma[i].valid = 0;
+          length = pvma[i].valid_len;
+          close = 1;
+          p->sz -= pvma[i].len;
+        } else {
+          pvma[i].off += length;
+          pvma[i].valid_len -= length;
+        }
+      } else {
+        // starting at middle, should unmap until the end
+        length = pvma[i].addr + pvma[i].off + pvma[i].valid_len - addr;
+        pvma[i].valid_len -= length;
+      }
+      if (pvma[i].flags & MAP_SHARED) {
+        // write the page back to the file
+        if (_filewrite(pvma[i].f, addr, length, addr - pvma[i].addr) == -1) return -1; 
+      }
+      uvmunmap(p->pagetable, addr, PGROUNDUP(length)/PGSIZE, 0);
+      if (close) fileclose(pvma[i].f);
+      return 0;
+    }
+  }
   return -1;
 }
