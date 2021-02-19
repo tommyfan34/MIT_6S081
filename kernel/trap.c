@@ -72,7 +72,8 @@ usertrap(void)
     // ok
   } else if (r_scause() == 13 || r_scause() == 15) {
     uint64 va = r_stval();
-    if (va < p->trapframe->sp || va > p->sz) {
+    // printf("va=%p, p->sz=%p, p->trapframe->sp=%p\n", va, p->sz, p->trapframe->sp);
+    if (va < p->trapframe->sp || va >= p->sz) {
       goto exception;
     }
     struct vma *pvma = p->procvma;

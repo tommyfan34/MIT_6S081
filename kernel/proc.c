@@ -367,7 +367,7 @@ exit(int status)
   struct vma *pvma = p->procvma;
   for (int i = 0; i < MAXVMA; i++) {
     if (pvma[i].valid == 1) {
-      uvmunmap(p->pagetable, pvma[i].addr + pvma[i].off, pvma[i].valid_len / PGSIZE, 0);
+      uvmunmap(p->pagetable, pvma[i].addr, pvma[i].len / PGSIZE, 0);
       memset(&pvma[i], 0, sizeof(struct vma));
     }
   }
